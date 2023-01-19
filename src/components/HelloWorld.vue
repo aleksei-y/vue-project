@@ -14,18 +14,15 @@
     </v-row>
 
     <v-row>
-      <div v-for="user in arrayGetUser" :key="user.id">
+      <div v-for="user in arrayUsersAPI" :key="user.id">
         <user-list :dataUser="user" @remove="remove" @updateUser="updateUser">
         </user-list>
       </div>
     </v-row>
 
     <v-row>
-      <v-col cols="8" sm="6" md="3" v-if="renameUser">
-        <update-user
-          :renameUserName="renameUserName"
-          @saveNewName="saveNewName"
-        >
+      <v-col cols="8" sm="6" md="3" v-if="fieldVisibleRenameUser">
+        <update-user :editingUser="editingUser" @saveNewName="saveNewName">
         </update-user
       ></v-col>
     </v-row>
@@ -45,75 +42,115 @@ export default {
   },
 
   data: () => ({
-    url: "https://crudcrud.com/api/586d38df7bf247cebd0d233be2fe6ba2/unicorns/",
-    renameUser: false,
-    renameUserName: "",
-    arrayGetUser: [],
-    arrayUser: [
-      "Николай Гоголь",
-      "Иван Тургенев",
-      "Федор Блок",
-      "Александр Достоевкский",
-      "Иван Лермонтов",
-      "Федор Лермонтов",
-      "Михаил Лермонтов",
-      "Иван Тургенев",
-      "Николай Лермонтов",
-    ],
+    url: "https://crudcrud.com/api/6188a7a1573b440f8c129a435c79f94e/unicorns/",
+    fieldVisibleRenameUser: false,
+    editingUser: "",
+    arrayUsersAPI: [],
+    FIRST_NAME: ["Николай", "Иван", "Федор", "Александр", "Михаил"],
+    LAST_NAME: ["Гоголь", "Тургенев", "Блок", "Достоевкский", "Лермонтов"],
+    arrayGeneratedUsers: [],
   }),
   methods: {
-    postReqest() {
-      this.arrayUser.forEach((element) => {
-        axios({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          url: "https://cors-anywhere.herokuapp.com/" + this.url,
-          data: { name: element },
-        });
-      });
+    generateArrayUsers() {
+      this.arrayGeneratedUsers = [];
+      while (this.arrayGeneratedUsers.length < 10) {
+        this.arrayGeneratedUsers.push(
+          this.FIRST_NAME[
+            Math.floor(0 + Math.random() * (this.FIRST_NAME.length - 0))
+          ] +
+            " " +
+            this.LAST_NAME[
+              Math.floor(0 + Math.random() * (this.LAST_NAME.length - 0))
+            ]
+        );
+      }
+      console.log(this.arrayGeneratedUsers);
+    },
+
+    async postReqest() {
+      this.generateArrayUsers();
+
+      for (let i = 0; i < this.arrayGeneratedUsers.length; i++) {
+        try {
+          await axios({
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            url: "https://cors-anywhere.herokuapp.com/" + this.url,
+            data: { name: this.arrayGeneratedUsers[i] },
+          });
+        } catch (error) {
+          console.log(error.code);
+        }
+      }
+
+      // this.arrayGeneratedUsers.forEach((element) => {
+      //   axios({
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     url: "https://cors-anywhere.herokuapp.com/" + this.url,
+      //     data: { name: element },
+      //   });
+      // });
     },
 
     async getReqest() {
-      await axios({
-        method: "get",
-        url: this.url,
-      }).then((response) => {
-        this.arrayGetUser = response.data;
-        console.log(this.arrayUser);
-      });
+      try {
+        await axios({
+          method: "get",
+          url: this.url,
+        }).then((response) => {
+          this.arrayUsersAPI = response.data;
+          console.log(this.arrayUsersAPI);
+        });
+      } catch (error) {
+        console.log(error.code);
+      }
     },
 
     async remove(item) {
       let deleteUserId = item._id;
 
-      await axios.delete(
-        "https://cors-anywhere.herokuapp.com/" + this.url + deleteUserId
-      );
-      this.arrayGetUser.splice(this.arrayGetUser.indexOf(item), 1);
-      this.renameUser = false;
+      try {
+        await axios
+          .delete(
+            "https://cors-anywhere.herokuapp.com/" + this.url + deleteUserId
+          )
+          .then((response) => console.log(response));
+        this.arrayUsersAPI.splice(this.arrayUsersAPI.indexOf(item), 1);
+        this.fieldVisibleRenameUser = false;
+      } catch (error) {
+        console.log(error.code);
+      }
       console.log(deleteUserId);
+      console.log(this.arrayUsersAPI);
     },
 
     updateUser(item) {
-      this.renameUserName = item;
-      this.renameUser = true;
-      console.log(this.renameUserName);
+      this.editingUser = item;
+      this.fieldVisibleRenameUser = true;
+      console.log(this.editingUser);
     },
 
     saveNewName() {
-      console.log(this.renameUserName);
-      axios.put(
-        "https://cors-anywhere.herokuapp.com/" +
-          this.url +
-          this.renameUserName._id,
-        {
-          name: this.renameUserName.name,
-        }
-      );
+      try {
+        console.log(this.editingUser);
+        axios.put(
+          "https://cors-anywhere.herokuapp.com/" +
+            this.url +
+            this.editingUser._id,
+          {
+            name: this.editingUser.name,
+          }
+        );
 
-      this.renameUser = false;
+        this.fieldVisibleRenameUser = false;
+      } catch (error) {
+        console.log(error.code);
+      }
     },
   },
 };
